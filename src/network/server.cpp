@@ -1,67 +1,95 @@
 #include "network/server.hpp"
+#include "network/session.hpp"
+#include "utils/color.hpp"
 #include <iostream>
-#include <memory>
-#include <thread>
+#include <utility>
 
 namespace mud {
-server::server(const std::string &host, short port)
-    : acceptor_(io_context_, boost::asio::ip::tcp::endpoint(
-                                 boost::asio::ip::make_address(host), port)) {
-  start_accept();
+server::server(boost::asio::io_context &io_context, const tcp::endpoint &endpoint,
+               const std::string &data_path)
+    : io_context_(io_context), acceptor_(io_context, endpoint),
+      world_(data_path + "/maps"),
+      command_manager_(data_path + "/commands.json") {
+  do_accept();
 }
 
-void server::run() {
-  // CPU 코어 수만큼 스레드 풀 생성
-  const auto thread_count =
-      std::max<int>(1, std::thread::hardware_concurrency());
-  for (int i = 0; i < thread_count; ++i) {
-    thread_pool_.emplace_back([this] {
-      try {
-        io_context_.run();
-      } catch (const std::exception &e) {
-        std::cerr << "Thread exception: " << e.what() << std::endl;
+void server::run() { io_context_.run(); }
+
+void server::join(chat_participant_ptr participant) {
+    sessions_.insert(participant);
+}
+
+void server::leave(chat_participant_ptr participant) {
+    auto session_ptr = std::dynamic_pointer_cast<mud::session>(participant);
+    if (session_ptr && session_ptr->get_player()) {
+        std::string username = session_ptr->get_player()->get_name();
+        // std::string msg = "\033[90m" + username + " has left the game.\033[0m";
+        std::string msg = utils::color::left(username + " has left the game.");
+        std::cout << msg << std::endl;
+        remove_player(username);
+        broadcast(msg, participant);
+    }
+    sessions_.erase(participant);
+}
+
+void server::broadcast(const std::string &msg, chat_participant_ptr sender) {
+    for (auto &participant : sessions_) {
+        auto s = std::dynamic_pointer_cast<mud::session>(participant);
+        if (s && s->is_logged_in() && participant != sender) {
+            s->deliver(msg);
+        }
+    }
+}
+
+void server::broadcast_to_room(const std::string &msg,
+                               std::shared_ptr<world::Room> room,
+                               chat_participant_ptr sender) {
+  for (auto &participant : sessions_) {
+    if (participant != sender) {
+      auto s = std::dynamic_pointer_cast<mud::session>(participant);
+      if (s && s->is_logged_in() && s->get_player() &&
+          s->get_player()->get_room() == room) {
+        s->deliver(msg);
       }
-    });
-  }
-  // 메인 스레드 - 스레드 최소 2개
-  try {
-    io_context_.run();
-  } catch (const std::exception &e) {
-    std::cerr << "Main thread exception: " << e.what() << std::endl;
-  }
-}
-
-void server::stop() {
-  std::cout << "Stopping server..." << std::endl;
-  // I/O 서비스를 중지하고 모든 스레드가 종료될 때까지 대기
-  io_context_.stop();
-  for (auto &t : thread_pool_) {
-    if (t.joinable()) {
-      t.join();
     }
   }
-  std::cout << "Server stopped." << std::endl;
 }
 
-void server::start_accept() {
-  // 비동기적 새 클라이언트 연결 수락
-  acceptor_.async_accept([this](const boost::system::error_code &error,
-                                boost::asio::ip::tcp::socket socket) {
-    handle_accept(std::move(socket), error);
-  });
+std::shared_ptr<Player> server::add_player(const std::string &name) {
+    if (players_.find(name) != players_.end()) {
+        return nullptr;
+    }
+    auto player = std::make_shared<Player>(name);
+    players_[name] = player;
+    return player;
 }
 
-void server::handle_accept(boost::asio::ip::tcp::socket &&socket,
-                           const boost::system::error_code &error) {
-  std::cout << "Attempting to handle a new connection." << std::endl;
-  if (!error) {
-    std::cout << "New connection from: "
-              << socket.remote_endpoint().address().to_string() << ":"
-              << socket.remote_endpoint().port() << std::endl;
-    std::make_shared<session>(std::move(socket))->start();
-  } else {
-    std::cerr << "Accept error: " << error.message() << std::endl;
+void server::remove_player(const std::string &name) {
+    players_.erase(name);
+}
+
+std::shared_ptr<Player> server::get_player_by_name(const std::string &name) {
+  auto it = players_.find(name);
+  if (it != players_.end()) {
+    return it->second;
   }
-  start_accept();
+  return nullptr;
+}
+
+world::World &server::get_world() { return world_; }
+
+const CommandManager &server::get_command_manager() const {
+  return command_manager_;
+}
+
+void server::do_accept() {
+  acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
+    if (!ec) {
+      auto new_session =
+          std::make_shared<session>(std::move(socket), *this);
+      new_session->start();
+    }
+    do_accept();
+  });
 }
 } // namespace mud

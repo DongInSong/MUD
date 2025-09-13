@@ -1,0 +1,23 @@
+{
+  "id": "north_road",
+  "name": "North Road",
+  "description": "A dusty road leading north out of town.",
+  "size": {
+    "width": 5,
+    "height": 20
+  },
+  "objects": [],
+  "portals": [
+    {
+      "x": 4,
+      "y": 19,
+      "target_map": "town_square",
+      "target_x": 5,
+      "target_y": 0,
+      "description": "A path leads south back to the town."
+    }
+  ],
+  "exits": {
+    "south": "town_square"
+  }
+}
