@@ -3,6 +3,7 @@
 #include "players/player.hpp"
 #include "world/room.hpp"
 #include "utils/color.hpp"
+#include "utils/logger.hpp"
 #include <iostream>
 #include <istream>
 #include <sstream>
@@ -144,6 +145,7 @@ deliver(utils::color::color(utils::color::SAY ,"Hello, " + player_->get_name() +
                                "! Welcome to the MUD."));   
 
   std::string join_msg = utils::color::join(player_->get_name() + " has joined the game.");
+  utils::Logger::instance().log(player_->get_name() + " has joined the game.");
   server_.broadcast(join_msg, shared_from_this());
 
   process_command("look");
@@ -175,22 +177,22 @@ void session::process_command(const std::string &input) {
     return;
   }
 
-  std::vector<std::string> args;
-  std::string arg;
-  if (std::getline(iss, arg)) {
-    if (!arg.empty() && arg[0] == ' ') {
-      arg = arg.substr(1);
-    }
-    if (!arg.empty()) {
-      args.push_back(arg);
-    }
-  }
+  // std::vector<std::string> args;
+  // std::string arg;
+  // if (std::getline(iss, arg)) {
+  //   if (!arg.empty() && arg[0] == ' ') {
+  //     arg = arg.substr(1);
+  //   }
+  //   if (!arg.empty()) {
+  //     args.push_back(arg);
+  //   }
+  // }
 
-// std::vector<std::string> args;
-// std::string arg;
-// while (iss >> arg) {
-//     args.push_back(arg);
-// }
+std::vector<std::string> args;
+std::string arg;
+while (iss >> arg) {
+    args.push_back(arg);
+}
 
   command_handler_.handle(command, args);
 }

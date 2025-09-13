@@ -1,6 +1,7 @@
 #include "network/server.hpp"
 #include "network/session.hpp"
 #include "utils/color.hpp"
+#include "utils/logger.hpp"
 #include <iostream>
 #include <utility>
 
@@ -25,7 +26,7 @@ void server::leave(chat_participant_ptr participant) {
         std::string username = session_ptr->get_player()->get_name();
         // std::string msg = "\033[90m" + username + " has left the game.\033[0m";
         std::string msg = utils::color::left(username + " has left the game.");
-        std::cout << msg << std::endl;
+        utils::Logger::instance().log(username + " has left the game.");
         remove_player(username);
         broadcast(msg, participant);
     }

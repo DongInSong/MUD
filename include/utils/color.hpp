@@ -51,11 +51,11 @@ inline std::string whisper(const std::string &message) {
 }
 
 inline std::string join(const std::string &message) {
-  return tagWithColor("Join", JOIN, message);
+  return color(JOIN, message);
 }
 
 inline std::string left(const std::string &message) {
-  return tagWithColor("Left", LEFT, message);
+  return color(LEFT, message);
 }
 
 inline std::string event(const std::string &message) {

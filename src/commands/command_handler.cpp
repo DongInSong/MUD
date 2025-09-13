@@ -3,6 +3,7 @@
 #include "network/server.hpp"
 #include "players/player.hpp"
 #include "utils/color.hpp"
+#include "utils/logger.hpp"
 #include "world/room.hpp"
 
 namespace mud {
@@ -135,9 +136,12 @@ void CommandHandler::say(const std::vector<std::string> &args) {
     return;
   }
 
-  std::string message = args[0];
+  std::string message;
+  for (size_t i = 0; i < args.size(); ++i) {
+    message += args[i] + (i == args.size() - 1 ? "" : " ");
+  }
   std::string formatted_message = utils::color::say(player->get_name() + ": " + message);
-
+  utils::Logger::instance().log("say: " + player->get_name() + ": " + message);
   session_.deliver(formatted_message);
   session_.get_server().broadcast_to_room(formatted_message, player->get_room(),
                                           session_.shared_from_this());
@@ -150,35 +154,32 @@ void CommandHandler::shout(const std::vector<std::string> &args) {
     session_.deliver(utils::color::system("What do you want to shout?"));
     return;
   }
-  std::string message = args[0];
+  std::string message;
+  for (size_t i = 0; i < args.size(); ++i) {
+    message += args[i] + (i == args.size() - 1 ? "" : " ");
+  }
   std::string formatted_message = utils::color::shout(
       player->get_name() + ": " + message);
-
+  utils::Logger::instance().log("shout: " + player->get_name() + ": " + message);
   session_.get_server().broadcast(formatted_message);
 }
 
 void CommandHandler::whisper(const std::vector<std::string> &args) {
   auto player = session_.get_player();
-  if (!player) return;
+  if (!player)
+    return;
   if (args.size() < 2) {
-    session_.deliver(
-        utils::color::system("Who do you want to whisper to and what?"));
+    session_.deliver(utils::color::system(
+        "Who do you want to whisper to and what? (e.g., /w <player> <msg>)"));
     return;
   }
 
-  std::stringstream ss(args[0]);
-  std::string target_name;
-  ss >> target_name;
-  
-  std::string message;
-    for(size_t i = 1; i < args.size(); ++i) {
-        message += args[i] + " ";
-    }
-    // remove last space
-    if (!message.empty()) {
-        message.pop_back();
-    }
+  std::string target_name = args[0];
 
+  std::string message;
+  for (size_t i = 1; i < args.size(); ++i) {
+    message += args[i] + (i == args.size() - 1 ? "" : " ");
+  }
 
   auto target_player = session_.get_server().get_player_by_name(target_name);
 
@@ -187,12 +188,12 @@ void CommandHandler::whisper(const std::vector<std::string> &args) {
     return;
   }
 
-  std::string to_target_msg = utils::color::whisper(
-      player->get_name() + ": " + message);
+  std::string to_target_msg =
+      utils::color::whisper(player->get_name() + ": " + message);
   target_player->send_message(to_target_msg);
 
-  std::string to_self_msg = utils::color::whisper(
-      "To " + target_name + ": " + message);
+  std::string to_self_msg =
+      utils::color::whisper("To " + target_name + ": " + message);
   session_.deliver(to_self_msg);
 }
 
