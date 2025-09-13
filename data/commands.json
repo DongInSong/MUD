@@ -1,0 +1,56 @@
+{
+  "commands": [
+    {
+      "name": "LOOK",
+      "aliases": ["look", "l", "보기", "봐"]
+    },
+    {
+      "name": "NORTH",
+      "aliases": ["n", "north", "북"]
+    },
+    {
+      "name": "SOUTH",
+      "aliases": ["s", "south", "남"]
+    },
+    {
+      "name": "EAST",
+      "aliases": ["e", "east", "동"]
+    },
+    {
+      "name": "WEST",
+      "aliases": ["w", "west", "서"]
+    },
+    {
+      "name": "MOVE",
+      "aliases": ["m", "move", "이동"]
+    },
+    {
+      "name": "SAY",
+      "aliases": ["say", "말"]
+    },
+    {
+      "name": "QUIT",
+      "aliases": ["quit", "exit", "종료", "나가기"]
+    },
+    {
+      "name": "CLEAR",
+      "aliases": ["clear", "cls", "지우기"]
+    },
+    {
+      "name": "SHOUT",
+      "aliases": ["shout", "외치기"]
+    },
+    {
+      "name": "WHISPER",
+      "aliases": ["whisper", "whis", "귓", "귓속말"]
+    },
+    {
+      "name": "HELP",
+      "aliases": ["help", "도움"]
+    },
+    {
+      "name": "INTERACT",
+      "aliases": ["interact", "inter", "상호작용", "상호"]
+    }
+  ]
+}

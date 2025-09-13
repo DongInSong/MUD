@@ -1,0 +1,41 @@
+{
+  "id": "town_square",
+  "name": "Town Square",
+  "description": "You are in the bustling town square.",
+  "size": {
+    "width": 10,
+    "height": 10
+  },
+  "objects": [
+    {
+      "type": "npc",
+      "name": "Old Man",
+      "description": "An old man sits on a bench, feeding pigeons.",
+      "is_interactable": true,
+      "x": 3,
+      "y": 5
+    },
+    {
+      "type": "item",
+      "name": "Fountain",
+      "description": "A large, ornate fountain bubbles in the center of the square.",
+      "is_interactable": false,
+      "x": 5,
+      "y": 5
+    }
+  ],
+  "portals": [
+    {
+      "x": 5,
+      "y": 0,
+      "target_map": "north_road",
+      "target_x": 4,
+      "target_y": 19,
+      "description": "A dusty path leads north out of the town."
+    }
+  ],
+  "exits": {
+    "north": "north_road",
+    "south": "south_road"
+  }
+}

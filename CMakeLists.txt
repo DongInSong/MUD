@@ -19,6 +19,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Boost REQUIRED COMPONENTS asio)
 find_package(GTest CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # 소스 파일 목록
 file(GLOB_RECURSE ALL_SOURCES "src/**/*.cpp")
@@ -35,12 +36,23 @@ set(TEST_LIB ${ALL_SOURCES})
 # 서버 빌드
 add_executable(mud_server ${SOURCES})
 target_include_directories(mud_server PUBLIC include)
-target_link_libraries(mud_server PRIVATE Boost::asio yaml-cpp::yaml-cpp)
+target_link_libraries(mud_server PRIVATE Boost::asio yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json)
+
+# 빌드 후 데이터 파일을 실행 파일 위치로 복사
+add_custom_command(TARGET mud_server POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/data" "$<TARGET_FILE_DIR:mud_server>/data"
+    COMMENT "Copying data files to build directory"
+)
 
 # 테스트용 클라이언트 빌드
 add_executable(client client/client.cpp)
 target_include_directories(client PUBLIC include)
 target_link_libraries(client PRIVATE Boost::asio)
+
+# MUD 클라이언트 빌드
+add_executable(mud_client client/mud_client.cpp)
+target_link_libraries(mud_client PRIVATE Boost::asio)
 
 # 테스트 코드 추가
 # enable_testing()

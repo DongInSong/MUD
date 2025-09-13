@@ -1,0 +1,14 @@
+{
+  "id": "south_road",
+  "name": "South Road",
+  "description": "A muddy path leading south.",
+  "size": {
+    "width": 5,
+    "height": 15
+  },
+  "objects": [],
+  "portals": [],
+  "exits": {
+    "north": "town_square"
+  }
+}

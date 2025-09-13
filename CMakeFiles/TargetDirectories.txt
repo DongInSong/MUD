@@ -1,0 +1,5 @@
+C:/Users/user/Documents/GitHub/MUD/CMakeFiles/mud_server.dir
+C:/Users/user/Documents/GitHub/MUD/CMakeFiles/client.dir
+C:/Users/user/Documents/GitHub/MUD/CMakeFiles/mud_client.dir
+C:/Users/user/Documents/GitHub/MUD/CMakeFiles/ALL_BUILD.dir
+C:/Users/user/Documents/GitHub/MUD/CMakeFiles/ZERO_CHECK.dir
