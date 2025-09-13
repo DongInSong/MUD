@@ -1,9 +1,8 @@
 # MUD
 - **TCP/IP multi-user dungeon**  
 
-I'm studying TCP and C++, and just for fun, I decided to try building a text-based multiplayer game server.  
-I don't really know what I'm doing, but it’s coming along.  
-Basically, it’s very much a "let’s see where this goes" kind of project.
+Just building a mud game in C++ using TCP/IP.
+I don’t know much about MUDs, so it’s very much a 'let’s see where this goes' kind of project.
 
 <img src="/images/091325.png" alt="Mudlet" width="600" />
 
