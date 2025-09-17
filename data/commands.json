@@ -1,73 +1,29 @@
 {
-  "commands": [
-    {
-      "name": "LOOK",
-      "aliases": ["l", "보기", "봐", "살펴보기"]
-    },
-    {
-      "name": "NORTH",
-      "aliases": ["n", "북", "북쪽"]
-    },
-    {
-      "name": "SOUTH",
-      "aliases": ["s", "남", "남쪽"]
-    },
-    {
-      "name": "EAST",
-      "aliases": ["e", "동", "동쪽"]
-    },
-    {
-      "name": "WEST",
-      "aliases": ["w", "서", "서쪽"]
-    },
-    {
-      "name": "MOVE",
-      "aliases": ["m", "이동", "가기"]
-    },
-    {
-      "name": "SAY",
-      "aliases": ["말하기", "say", "ㄴ"]
-    },
-    {
-      "name": "QUIT",
-      "aliases": ["종료", "나가기"]
-    },
-    {
-      "name": "CLEAR",
-      "aliases": ["cls", "지우기"]
-    },
-    {
-      "name": "SHOUT",
-      "aliases": ["외치기", "ㅂ", "외"]
-    },
-    {
-      "name": "WHISPER",
-      "aliases": ["whis", "귓", "귓속말"]
-    },
-    {
-      "name": "HELP",
-      "aliases": ["도움말"]
-    },
-    {
-      "name": "INTERACT",
-      "aliases": ["상호작용"]
-    },
-    {
-      "name": "CHAT",
-      "aliases": ["채팅", "ㅊ"]
-    },
-    {
-      "name": "GET",
-      "aliases": ["줍기", "주워"]
-    },
-    {
-      "name": "STEAL",
-      "aliases": ["훔치기", "훔쳐"]
-    },
-    {
-      "name": "MAP",
-      "aliases": ["지도", "map", "맵"]
-    }
-
-  ]
+    "commands": [
+        { "name": "LOOK", "aliases": ["봐", "보기", "l", "look"] },
+        { "name": "GET", "aliases": ["주워", "줍기", "g", "get"] },
+        { "name": "TALK", "aliases": ["말걸기", "대화", "talk"] },
+        { "name": "USE", "aliases": ["사용", "쓰기", "u", "use"] },
+        { "name": "MOVE", "aliases": ["이동", "가기", "m", "move"] },
+        { "name": "NORTH", "aliases": ["북", "north", "n"] },
+        { "name": "SOUTH", "aliases": ["남", "south", "s"] },
+        { "name": "EAST", "aliases": ["동", "east", "e"] },
+        { "name": "WEST", "aliases": ["서", "west", "w"] },
+        { "name": "SAY", "aliases": ["말하기", "ㄴ", "say"] },
+        { "name": "SHOUT", "aliases": ["외치기", "ㅂ", "shout"] },
+        { "name": "WHISPER", "aliases": ["귓속말", "ㅅ", "whisper"] },
+        { "name": "ATTACK", "aliases": ["공격", "때리기", "a", "attack"] },
+        { "name": "STEAL", "aliases": ["훔치기", "steal"] },
+        { "name": "INVENTORY", "aliases": ["인벤토리", "inventory", "i"] },
+        { "name": "HELP", "aliases": ["도움", "help", "?"] },
+        { "name": "CHAT", "aliases": ["채팅", "ㅊ"] },
+        { "name": "STATS", "aliases": ["능력치", "stats"] },
+        { "name": "EQUIP", "aliases": ["장착", "equip"] },
+        { "name": "UNEQUIP", "aliases": ["해제", "unequip"] },
+        { "name": "SAVE", "aliases": ["저장", "save"] },
+        { "name": "LOAD", "aliases": ["불러오기", "load"] },
+        { "name": "QUIT", "aliases": ["종료", "quit"] },
+        { "name": "CLEAR", "aliases": ["클리어", "clear"] },
+        { "name": "MAP", "aliases": ["지도", "map"] }
+    ]
 }

@@ -8,11 +8,11 @@ namespace mud {
 class LlmApiClient {
 public:
     LlmApiClient(const std::string& api_url);
-    nlohmann::json parse_command(const std::string& user_input);
+    nlohmann::json parse_command(const std::string& full_prompt);
 
 private:
     std::string api_url_;
-    std::string build_prompt(const std::string& user_input);
+    std::string model_;
 };
 
 } // namespace mud

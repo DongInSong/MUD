@@ -15,11 +15,12 @@ struct ParsedCommand {
 
 class NaturalLanguageProcessor {
 public:
-    NaturalLanguageProcessor(const std::string& llm_api_url);
+    NaturalLanguageProcessor(const std::string& llm_api_url, const std::string& prompt_file_path);
     ParsedCommand parse(const std::string& input);
 
 private:
     LlmApiClient llm_client_;
+    std::string base_prompt_;
 };
 
 } // namespace mud

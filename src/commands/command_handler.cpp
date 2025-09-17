@@ -43,8 +43,8 @@ void CommandHandler::setup_commands() {
       std::bind(&CommandHandler::whisper, this, std::placeholders::_1);
   commands_["CLEAR"] =
       std::bind(&CommandHandler::clear, this, std::placeholders::_1);
-  commands_["INTERACT"] =
-      std::bind(&CommandHandler::interact, this, std::placeholders::_1);
+  commands_["USE"] =
+      std::bind(&CommandHandler::use, this, std::placeholders::_1);
   commands_["TALK"] = 
       std::bind(&CommandHandler::talk, this, std::placeholders::_1);
   commands_["GET"] = 
@@ -77,6 +77,40 @@ void CommandHandler::look(const std::vector<std::string> &args) {
     session_.deliver(utils::color::error("You are lost in the void."));
     return;
   }
+
+  if (args.empty()) {
+    const auto &tile =
+        player->get_room()->get_tile(player->get_x(), player->get_y());
+    std::vector<world::Object> items;
+    for (const auto &obj : tile.objects) {
+      if (obj.type == "item") {
+        items.push_back(obj);
+      }
+    }
+
+    if (items.size() == 1) {
+      auto item_def = session_.get_server().get_world().get_item_manager().get_item(
+          items[0].item_id);
+      if (item_def) {
+        // session_.deliver(utils::text_format::create_boxed_message(
+        //     item_def->name, item_def->description, {}));
+        session_.deliver(item_def->description);
+        if(items[0].is_interactable) {
+            session_.deliver(utils::color::event(item_def->name + "와(과) 상호작용할 수 있습니다."));
+            // Add interaction logic here
+        }
+        return;
+      }
+    }
+  }
+
+  if (!args.empty()) {
+      const auto &tile = player->get_room()->get_tile(player->get_x(), player->get_y());
+      for (const auto &obj : tile.objects) {
+        //...
+    }
+  }
+
   auto room = player->get_room();
   int player_x = player->get_x();
   int player_y = player->get_y();
@@ -300,96 +334,113 @@ void CommandHandler::clear(const std::vector<std::string> &args) {
   session_.deliver("\033[2J\033[H");
 }
 
-void CommandHandler::interact(const std::vector<std::string> &args) {
-  auto player = session_.get_player();
-  if (!player || !player->get_room()) {
-    session_.deliver(utils::color::error("상호작용할 수 있는 장소에 없습니다."));
-    return;
-  }
-  
-  auto room = player->get_room();
-  const auto& tile = room->get_tile(player->get_x(), player->get_y());
-
-  if (args.empty()) { // No target specified, interact with everything on the tile
-    bool interacted = false;
-    if (tile.objects.empty() && !tile.portal) {
-        session_.deliver(utils::color::info("이곳에는 상호작용할 것이 없습니다."));
+void CommandHandler::use(const std::vector<std::string> &args) {
+    if (args.empty()) {
+        session_.deliver(utils::color::info("무엇을 사용하시겠습니까?"));
         return;
     }
-
-    for (const auto& obj : tile.objects) {
-        session_.deliver(utils::color::event(obj.name + "와(과) 상호작용합니다."));
-        if (obj.type == "npc") {
-            talk({obj.name});
-        } else if (obj.type == "item") {
-            get({obj.name});
-        }
-        interacted = true;
-    }
-
-    if (tile.portal) {
-        auto target_room = session_.get_server().get_world().get_room(tile.portal->target_map);
-        if (target_room) {
-            player->set_location(target_room, tile.portal->target_x, tile.portal->target_y);
-            session_.deliver("\n" + utils::color::system(target_room->get_name() + "에 도착했습니다."));
-            handle("LOOK", {});
-        } else {
-            session_.deliver(utils::color::error("포탈이 작동하지 않는 것 같습니다."));
-        }
-        interacted = true;
-    }
-  } else { // Target specified
     std::string target_name = args[0];
-    // Find the object in the room and interact with it
-    // This part needs a way to find objects by name in the room.
-    // For now, we'll just deliver a message.
-    session_.deliver(utils::color::info(target_name + "와(과) 상호작용을 시도합니다. (미구현)"));
-  }
-}
 
-void CommandHandler::talk(const std::vector<std::string> &args) {
-    if (args.empty()) {
-        // 인자 없이 "이야기한다"라고 입력한 경우, 현재 위치의 NPC와 대화 시도
+    if (target_name == "포탈" || target_name == "portal") {
         auto player = session_.get_player();
         if (!player || !player->get_room()) return;
 
         auto room = player->get_room();
         const auto& tile = room->get_tile(player->get_x(), player->get_y());
-        
-        std::string npc_name;
-        for (const auto& obj : tile.objects) {
-            if (obj.type == "npc") {
-                npc_name = obj.name;
-                break;
+        if (tile.portal) {
+            const auto& portal = *(tile.portal);
+            auto target_room = session_.get_server().get_world().get_room(portal.target_map);
+            if (target_room) {
+                player->set_location(target_room, portal.target_x, portal.target_y);
+                session_.deliver(utils::color::system("포탈을 통해 " + utils::color::color(utils::color::INFO, target_room->get_name()) + "로 이동합니다."));
+                look({});
+            } else {
+                session_.deliver(utils::color::error("목적지 방을 찾을 수 없습니다: " + portal.target_map));
             }
-        }
-
-        if (!npc_name.empty()) {
-            session_.deliver(utils::color::event(npc_name + "에게 말을 겁니다."));
-            // 여기에 실제 대화 로직 추가 가능
         } else {
-            session_.deliver(utils::color::info("주변에 대화할 상대가 없습니다."));
+            session_.deliver(utils::color::info("현재 위치에는 포탈이 없습니다."));
         }
+        return;
+    }
+
+    if (target_name == "지도" || target_name == "map") {
+        show_map({});
         return;
     }
     
-    // 특정 대상에게 말을 거는 경우
-    session_.deliver(utils::color::event(args[0] + "에게 말을 겁니다."));
+    // Handle other usable objects here in the future
+    session_.deliver(utils::color::info(target_name + "을(를) 사용하려고 시도합니다. (미구현)"));
 }
 
-void CommandHandler::get(const std::vector<std::string> &args) {
-    if (args.empty()) {
-        session_.deliver(utils::color::info("무엇을 주우시겠습니까?"));
-        return;
-    }
-
+void CommandHandler::talk(const std::vector<std::string> &args) {
     auto player = session_.get_player();
     if (!player || !player->get_room()) return;
 
     auto room = player->get_room();
     const auto& tile = room->get_tile(player->get_x(), player->get_y());
-    std::string target_name = args[0];
+    
+    world::Object target_npc;
+    bool npc_found = false;
 
+    if (args.empty()) {
+        for (const auto& obj : tile.objects) {
+            if (obj.type == "npc" && obj.npc_id != 0) {
+                target_npc = obj;
+                npc_found = true;
+                break;
+            }
+        }
+    } else {
+        std::string target_name = args[0];
+        for (const auto& obj : tile.objects) {
+            if (obj.type == "npc" && obj.name == target_name && obj.npc_id != 0) {
+                target_npc = obj;
+                npc_found = true;
+                break;
+            }
+        }
+    }
+
+    if (npc_found) {
+        auto npc_data = session_.get_server().get_world().get_npc_manager().get_npc(target_npc.npc_id);
+        if (npc_data) {
+            std::string dialogue = utils::color::dialogue(npc_data->name + ": \"" + npc_data->dialogue.default_dialogue + "\"");
+            session_.deliver(dialogue);
+        } else {
+            session_.deliver(utils::color::error("NPC 정보를 찾을 수 없습니다."));
+        }
+    } else {
+        session_.deliver(utils::color::info("주변에 대화할 상대가 없습니다."));
+    }
+}
+
+void CommandHandler::get(const std::vector<std::string> &args) {
+    auto player = session_.get_player();
+    if (!player || !player->get_room()) return;
+
+    auto room = player->get_room();
+    const auto& tile = room->get_tile(player->get_x(), player->get_y());
+    
+    if (args.empty()) {
+        std::vector<world::Object> gettable_items;
+        for (const auto& obj : tile.objects) {
+            if (obj.type == "item" && obj.is_interactable) {
+                gettable_items.push_back(obj);
+            }
+        }
+
+        if (gettable_items.empty()) {
+            session_.deliver(utils::color::info("주변에 주울만한 아이템이 없습니다."));
+        } else if (gettable_items.size() == 1) {
+            // Recursively call get with the item name
+            get({gettable_items[0].name});
+        } else {
+            session_.deliver(utils::color::info("주울 아이템이 여러 개 있습니다. 어떤 것을 주우시겠습니까?"));
+        }
+        return;
+    }
+
+    std::string target_name = args[0];
     auto it = std::find_if(tile.objects.begin(), tile.objects.end(),
                            [&target_name](const world::Object& obj) {
                                return obj.name == target_name && obj.type == "item";
@@ -397,6 +448,10 @@ void CommandHandler::get(const std::vector<std::string> &args) {
 
     if (it != tile.objects.end()) {
         const auto& obj = *it;
+        if (!obj.is_interactable) {
+            session_.deliver(utils::color::info(obj.name + "은(는) 주울 수 없습니다."));
+            return;
+        }
         auto item = session_.get_server().get_world().get_item_manager().get_item(obj.item_id);
         if (item) {
             player->add_item_to_inventory(*item);

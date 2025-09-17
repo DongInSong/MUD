@@ -25,7 +25,7 @@ private:
   void whisper(const std::vector<std::string> &args);
   void quit(const std::vector<std::string> &args);
   void clear(const std::vector<std::string> &args);
-  void interact(const std::vector<std::string> &args);
+  void use(const std::vector<std::string> &args);
   void talk(const std::vector<std::string> &args);
   void get(const std::vector<std::string> &args);
   void show_map(const std::vector<std::string> &args);

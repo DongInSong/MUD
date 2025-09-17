@@ -29,6 +29,7 @@ const std::string EVENT = "\x1b[1;33m";      // Bright Yellow  (이벤트 - 특�
 const std::string INFO = "\x1b[1;33m";       // Bright Yellow  (정보 - 신뢰/안정)
 const std::string PORTAL  = "\x1b[1;35m";  // Bright Magenta (포탈 - 신비로움/탐험)
 
+const std::string DIALOGUE = "\x1b[1;32m"; // Bright Green   (대화 - 친근함/접근성)
 
 inline std::string color(const std::string &color, const std::string &message) {
   return color + message + RESET;
@@ -48,6 +49,10 @@ inline std::string tagWithColor(const std::string &tag, const std::string &color
         return color + "[" + tag + "] " + message + RESET;
     }
   return color + "[" + icon + " " + tag + "] " + message + RESET;
+}
+
+inline std::string dialogue(const std::string &message) {
+  return tag("대화", DIALOGUE, message, "💬");
 }
 
 inline std::string input(const std::string &message) {
@@ -83,15 +88,15 @@ inline std::string move(const std::string &message) {
 }
 
 inline std::string system(const std::string &message) {
-  return tag("System", SYSTEM, message, "i");
+  return tag("System", SYSTEM, message);
 }
 
 inline std::string info(const std::string &message) {
-  return tag("Info", INFO, message, "i");
+  return tag("Info", INFO, message);
 }
 
 inline std::string error(const std::string &message) {
-  return tag("Error", ERROR_, message, "!");
+  return tag("Error", ERROR_, message, "(!)");
 }
 
 inline std::string portal(const std::string &message) {

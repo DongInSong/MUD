@@ -24,6 +24,7 @@ struct Object {
   bool is_interactable;
   std::string description;
   std::string item_id;
+  int npc_id = 0;
 };
 
 struct Tile {
