@@ -30,4 +30,6 @@ int Player::get_x() const { return x_; }
 
 int Player::get_y() const { return y_; }
 
+int Player::get_sight_radius() const { return sight_radius_; }
+
 } // namespace mud

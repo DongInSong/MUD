@@ -1,7 +1,7 @@
 {
   "id": "south_road",
-  "name": "South Road",
-  "description": "A muddy path leading south.",
+  "name": "남쪽 길",
+  "description": "남쪽으로 이어지는 진흙탕 길입니다.",
   "size": {
     "width": 5,
     "height": 15

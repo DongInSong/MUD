@@ -44,10 +44,28 @@ void CommandHandler::setup_commands() {
       std::bind(&CommandHandler::clear, this, std::placeholders::_1);
   commands_["INTERACT"] =
       std::bind(&CommandHandler::interact, this, std::placeholders::_1);
+  commands_["TALK"] = 
+      std::bind(&CommandHandler::talk, this, std::placeholders::_1);
+  commands_["GET"] = 
+      std::bind(&CommandHandler::get, this, std::placeholders::_1);
+  commands_["CHAT"] = [this](const auto& args) { session_.toggle_chat_mode(); };
 }
 
 void CommandHandler::quit(const std::vector<std::string> &args) {
   session_.stop();
+}
+
+// Helper function to determine relative direction
+std::string get_relative_direction(int player_x, int player_y, int target_x, int target_y) {
+    std::string direction = "";
+    if (target_y < player_y) direction += "북";
+    else if (target_y > player_y) direction += "남";
+
+    if (target_x < player_x) direction += "서";
+    else if (target_x > player_x) direction += "동";
+
+    if (direction.empty()) return "발밑";
+    return direction + "쪽";
 }
 
 void CommandHandler::look(const std::vector<std::string> &args) {
@@ -57,71 +75,137 @@ void CommandHandler::look(const std::vector<std::string> &args) {
     return;
   }
   auto room = player->get_room();
+  int player_x = player->get_x();
+  int player_y = player->get_y();
+  int sight_radius = player->get_sight_radius();
+
   session_.deliver(
       "========================================");
   session_.deliver(
-      room->get_name() + " (" + std::to_string(player->get_x()) + ", " +
-      std::to_string(player->get_y()) + ")");
+      room->get_name() + " (" + std::to_string(player_x) + ", " +
+      std::to_string(player_y) + ")");
   session_.deliver(room->get_description());
-  look_at_tile(&session_);
+  look_at_tile(&session_); // 현재 타일 정보 출력
+
+  // 주변 시야 정보 출력
+  bool found_something = false;
+  for (int y = player_y - sight_radius; y <= player_y + sight_radius; ++y) {
+      for (int x = player_x - sight_radius; x <= player_x + sight_radius; ++x) {
+          if (x == player_x && y == player_y) continue; // Skip player's own tile
+          if (x >= 0 && x < room->get_width() && y >= 0 && y < room->get_height()) {
+              const auto& tile = room->get_tile(x, y);
+              if (!tile.objects.empty() || tile.portal) {
+                  std::string direction = get_relative_direction(player_x, player_y, x, y);
+                  std::string coord_str = " (" + std::to_string(x) + "," + std::to_string(y) + ")";
+                  for (const auto& obj : tile.objects) {
+                      session_.deliver(utils::color::event(direction + coord_str + "에 " + obj.description));
+                      found_something = true;
+                  }
+                  if (tile.portal) {
+                      session_.deliver(utils::color::portal(direction + coord_str + "에 " + tile.portal->description));
+                      found_something = true;
+                  }
+              }
+          }
+      }
+  }
+
+  if (!found_something) {
+      session_.deliver(utils::color::info("주변에 특별한 것은 보이지 않습니다."));
+  }
+
   session_.deliver(
       "========================================");
 }
 
-void CommandHandler::move(int dx, int dy) {
+void CommandHandler::move(int dx, int dy, int amount) {
   auto player = session_.get_player();
   if (!player || !player->get_room()) {
-    session_.deliver(utils::color::system("You can't move."));
+    session_.deliver(utils::color::system("이동할 수 없습니다."));
     return;
   }
-  auto room = player->get_room();
-  int new_x = player->get_x() + dx;
-  int new_y = player->get_y() + dy;
 
-  if (new_x >= 0 && new_x < room->get_width() && new_y >= 0 &&
-      new_y < room->get_height()) {
-    player->set_location(room, new_x, new_y);
+  int initial_x = player->get_x();
+  int initial_y = player->get_y();
+  bool moved = false;
+
+  for (int i = 0; i < amount; ++i) {
+    auto room = player->get_room();
+    int new_x = player->get_x() + dx;
+    int new_y = player->get_y() + dy;
+
+    if (new_x >= 0 && new_x < room->get_width() && new_y >= 0 &&
+        new_y < room->get_height()) {
+      player->set_location(room, new_x, new_y);
+      moved = true;
+    } else {
+      session_.deliver(utils::color::system("그쪽으로는 더 이상 갈 수 없습니다."));
+      break; // Stop moving if hit a wall
+    }
+  }
+
+  if (moved) {
     session_.deliver(utils::color::tag(
-        "move", utils::color::MOVE,
-        "You moved to (" + std::to_string(new_x) + ", " +
-            std::to_string(new_y) + ")."));
+        "이동", utils::color::MOVE,
+        "이동했습니다. 현재 위치: (" + std::to_string(player->get_x()) + ", " +
+            std::to_string(player->get_y()) + ")"));
     look_at_tile(&session_);
-  } else {
-    session_.deliver(utils::color::system("You can't go that way."));
   }
 }
 
 void CommandHandler::move_to(const std::vector<std::string> &args) {
-  if (args.empty()) {
-    session_.deliver(
-        utils::color::system("Move to where? (e.g., /m 5,5)"));
-    return;
-  }
-  std::string coords = args[0];
-  size_t comma_pos = coords.find(',');
-  if (comma_pos == std::string::npos) {
-    session_.deliver(
-        utils::color::system("Invalid format. Use x,y (e.g., /m 5,5)"));
-    return;
-  }
-  try {
-    int x = std::stoi(coords.substr(0, comma_pos));
-    int y = std::stoi(coords.substr(comma_pos + 1));
-
-    auto player = session_.get_player();
-    auto room = player->get_room();
-    if (x >= 0 && x < room->get_width() && y >= 0 && y < room->get_height()) {
-      player->set_location(room, x, y);
-      session_.deliver(utils::color::move(
-          "You moved to (" + std::to_string(x) + ", " +
-              std::to_string(y) + ")."));
-      look_at_tile(&session_);
-    } else {
-      session_.deliver(utils::color::system("You can't move there."));
+    if (args.empty()) {
+        session_.deliver(utils::color::info("어디로 이동하시겠습니까? (예: 동쪽으로 3걸음 또는 3,5로 이동)"));
+        return;
     }
-  } catch (const std::exception &) {
-    session_.deliver(utils::color::system("Invalid coordinates."));
-  }
+
+    // 좌표 이동인지 방향 이동인지 판별
+    bool is_coordinate_move = false;
+    if (args.size() == 2) {
+        try {
+            std::stoi(args[0]);
+            std::stoi(args[1]);
+            is_coordinate_move = true;
+        } catch (const std::exception&) {
+            is_coordinate_move = false;
+        }
+    }
+
+    if (is_coordinate_move) {
+        int target_x = std::stoi(args[0]);
+        int target_y = std::stoi(args[1]);
+        auto player = session_.get_player();
+        auto room = player->get_room();
+
+        if (target_x >= 0 && target_x < room->get_width() && target_y >= 0 && target_y < room->get_height()) {
+            player->set_location(room, target_x, target_y);
+            session_.deliver(utils::color::tag(
+                "이동", utils::color::MOVE,
+                "이동했습니다. 현재 위치: (" + std::to_string(player->get_x()) + ", " +
+                    std::to_string(player->get_y()) + ")"));
+            look_at_tile(&session_);
+        } else {
+            session_.deliver(utils::color::system("그곳으로는 이동할 수 없습니다."));
+        }
+    } else { // 방향 이동
+        std::string direction = args[0];
+        int amount = 1;
+        if (args.size() > 1) {
+            try {
+                amount = std::stoi(args[1]);
+            } catch (const std::exception&) {
+                amount = 1; // Default to 1 if conversion fails
+            }
+        }
+
+        if (direction == "NORTH") move(0, -1, amount);
+        else if (direction == "SOUTH") move(0, 1, amount);
+        else if (direction == "EAST") move(1, 0, amount);
+        else if (direction == "WEST") move(-1, 0, amount);
+        else {
+            session_.deliver(utils::color::system("알 수 없는 방향입니다: " + direction));
+        }
+    }
 }
 
 void CommandHandler::say(const std::vector<std::string> &args) {
@@ -132,7 +216,8 @@ void CommandHandler::say(const std::vector<std::string> &args) {
     return;
   }
   if (args.empty()) {
-    session_.deliver(utils::color::system("What do you want to say?"));
+    session_.deliver(utils::color::info("무엇을 말하고 싶으신가요?"));
+    session_.deliver(utils::color::info("사용법: /말하기 <메시지> 또는 /ㄴ <메시지> 또는 /ㅊ 으로 채팅 모드로 전환"));
     return;
   }
 
@@ -151,7 +236,8 @@ void CommandHandler::shout(const std::vector<std::string> &args) {
   auto player = session_.get_player();
   if (!player) return;
   if (args.empty()) {
-    session_.deliver(utils::color::system("What do you want to shout?"));
+    session_.deliver(utils::color::info("무엇을 외치고 싶으신가요?"));
+    session_.deliver(utils::color::info("사용법: /외치기 <메시지> 또는 /ㅂ <메시지>"));
     return;
   }
   std::string message;
@@ -169,8 +255,9 @@ void CommandHandler::whisper(const std::vector<std::string> &args) {
   if (!player)
     return;
   if (args.size() < 2) {
-    session_.deliver(utils::color::system(
-        "Who do you want to whisper to and what? (e.g., /w <player> <msg>)"));
+    session_.deliver(utils::color::info(
+        "누구에게 무엇을 속삭이시겠습니까?"));
+      session_.deliver(utils::color::info("사용법: /귓속말 <대상> <메시지> 또는 /ㅅ <대상> <메시지"));
     return;
   }
 
@@ -184,7 +271,7 @@ void CommandHandler::whisper(const std::vector<std::string> &args) {
   auto target_player = session_.get_server().get_player_by_name(target_name);
 
   if (!target_player) {
-    session_.deliver(utils::color::system("Player not found: " + target_name));
+    session_.deliver(utils::color::system("대상 플레이어를 찾을 수 없습니다: " + target_name));
     return;
   }
 
@@ -205,58 +292,88 @@ void CommandHandler::clear(const std::vector<std::string> &args) {
 void CommandHandler::interact(const std::vector<std::string> &args) {
   auto player = session_.get_player();
   if (!player || !player->get_room()) {
-    session_.deliver(utils::color::system("You are not in a room to interact."));
+    session_.deliver(utils::color::system("상호작용할 수 있는 장소에 없습니다."));
     return;
   }
   
   auto room = player->get_room();
-  int x = player->get_x();
-  int y = player->get_y();
-  const auto &tile = room->get_tile(x, y);
+  const auto& tile = room->get_tile(player->get_x(), player->get_y());
 
-  bool did_interact = false;
-
-  if (tile.objects.empty() && !tile.portal) {
-    session_.deliver(utils::color::system("There is nothing to interact with here."));
-    return;
-  }
-
-  for (const auto &obj : tile.objects) {
-    session_.deliver(utils::color::event("You interact with " + obj.name + "."));
-    if (obj.type == "npc") {
-      session_.deliver(utils::color::event(obj.name + " says: Hello there!"));
-      // Add NPC interaction logic here
-    } else if (obj.type == "item") {
-      session_.deliver(utils::color::event("You pick up the " + obj.name + "."));
-      // Add item pickup logic here
-    } else {
-      session_.deliver(utils::color::event("You examine the " + obj.name + ": " + obj.description));
+  if (args.empty()) { // No target specified, interact with everything on the tile
+    bool interacted = false;
+    if (tile.objects.empty() && !tile.portal) {
+        session_.deliver(utils::color::info("이곳에는 상호작용할 것이 없습니다."));
+        return;
     }
-    did_interact = true;
-    // Add more interaction logic here
-  }
 
-  if (tile.portal) {
-    // session_.deliver(utils::color::portal("You use the portal."));
-
-    // player location to portal target
-    auto target_room = session_.get_server().get_world().get_room(tile.portal->target_map);
-    if (target_room) {
-        player->set_location(target_room, tile.portal->target_x, tile.portal->target_y);
-        session_.deliver("\n" + utils::color::system("You arrive at " + target_room->get_name() + "." + 
-            " (" + std::to_string(tile.portal->target_x) + ", " + std::to_string(tile.portal->target_y) + ")"));
-        // look_at_tile(&session_);
-        // use look command to show room info
-        handle({"LOOK"}, {});
-    } else {
-        session_.deliver(utils::color::system("The portal seems to be malfunctioning."));
+    for (const auto& obj : tile.objects) {
+        session_.deliver(utils::color::event(obj.name + "와(과) 상호작용합니다."));
+        if (obj.type == "npc") {
+            talk({obj.name});
+        } else if (obj.type == "item") {
+            get({obj.name});
+        }
+        interacted = true;
     }
-    
-    did_interact = true;
-  }
 
-  if (!did_interact) {
-    session_.deliver(utils::color::system("There is nothing to interact with here."));
+    if (tile.portal) {
+        auto target_room = session_.get_server().get_world().get_room(tile.portal->target_map);
+        if (target_room) {
+            player->set_location(target_room, tile.portal->target_x, tile.portal->target_y);
+            session_.deliver("\n" + utils::color::system(target_room->get_name() + "에 도착했습니다."));
+            handle("LOOK", {});
+        } else {
+            session_.deliver(utils::color::system("포탈이 작동하지 않는 것 같습니다."));
+        }
+        interacted = true;
+    }
+  } else { // Target specified
+    std::string target_name = args[0];
+    // Find the object in the room and interact with it
+    // This part needs a way to find objects by name in the room.
+    // For now, we'll just deliver a message.
+    session_.deliver(utils::color::system(target_name + "와(과) 상호작용을 시도합니다. (미구현)"));
   }
 }
+
+void CommandHandler::talk(const std::vector<std::string> &args) {
+    if (args.empty()) {
+        // 인자 없이 "이야기한다"라고 입력한 경우, 현재 위치의 NPC와 대화 시도
+        auto player = session_.get_player();
+        if (!player || !player->get_room()) return;
+
+        auto room = player->get_room();
+        const auto& tile = room->get_tile(player->get_x(), player->get_y());
+        
+        std::string npc_name;
+        for (const auto& obj : tile.objects) {
+            if (obj.type == "npc") {
+                npc_name = obj.name;
+                break;
+            }
+        }
+
+        if (!npc_name.empty()) {
+            session_.deliver(utils::color::event(npc_name + "에게 말을 겁니다."));
+            // 여기에 실제 대화 로직 추가 가능
+        } else {
+            session_.deliver(utils::color::info("주변에 대화할 상대가 없습니다."));
+        }
+        return;
+    }
+    
+    // 특정 대상에게 말을 거는 경우
+    session_.deliver(utils::color::event(args[0] + "에게 말을 겁니다."));
+}
+
+void CommandHandler::get(const std::vector<std::string> &args) {
+    if (args.empty()) {
+        session_.deliver(utils::color::info("무엇을 주우시겠습니까?"));
+        return;
+    }
+    // For now, just confirm the action.
+    // Later, this will involve finding the item and adding it to inventory.
+    session_.deliver(utils::color::event(args[0] + "을(를) 줍습니다."));
+}
+
 } // namespace mud

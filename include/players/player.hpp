@@ -19,8 +19,10 @@ public:
   std::shared_ptr<world::Room> get_room() const;
   int get_x() const;
   int get_y() const;
+  int get_sight_radius() const;
 
 private:
+  int sight_radius_ = 2;
   std::string name_;
   std::weak_ptr<session> session_;
   std::shared_ptr<world::Room> current_room_;

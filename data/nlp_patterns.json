@@ -1,0 +1,18 @@
+{
+  "patterns": [
+    { "keywords": ["봐", "살펴봐", "보기"], "command": "LOOK" },
+    { "keywords": ["이동", "가", "간다"], "command": "MOVE" },
+    { "keywords": ["공격", "때려"], "command": "ATTACK" },
+    { "keywords": ["말", "대화"], "command": "TALK" },
+    { "keywords": ["외쳐"], "command": "SHOUT" },
+    { "keywords": ["귓속말"], "command": "WHISPER" },
+    { "keywords": ["도움"], "command": "HELP" },
+    { "keywords": ["상호작용"], "command": "INTERACT" },
+    { "keywords": ["줍", "주워"], "command": "GET" },
+    { "keywords": ["훔쳐"], "command": "STEAL" },
+    { "keywords": ["북", "북쪽"], "command": "NORTH" },
+    { "keywords": ["남", "남쪽"], "command": "SOUTH" },
+    { "keywords": ["동", "동쪽"], "command": "EAST" },
+    { "keywords": ["서", "서쪽"], "command": "WEST" }
+  ]
+}

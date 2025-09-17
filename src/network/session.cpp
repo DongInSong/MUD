@@ -1,5 +1,6 @@
 #include "network/session.hpp"
 #include "network/server.hpp"
+#include "nlp/natural_language_processor.hpp"
 #include "players/player.hpp"
 #include "world/room.hpp"
 #include "utils/color.hpp"
@@ -24,7 +25,7 @@ void look_at_tile(session *s) {
   for (const auto &obj : tile.objects) {
     s->deliver(utils::color::event(obj.description));
     if(obj.is_interactable) {
-        s->deliver(utils::color::event("You can interact with " + obj.name));
+        s->deliver(utils::color::event(obj.name + "와(과) 상호작용할 수 있습니다."));
         // Add interaction logic here
     }
   }
@@ -47,7 +48,7 @@ session::session(tcp::socket socket, server &server)
 
 void session::start() {
   server_.join(shared_from_this());
-  deliver(utils::color::color(utils::color::SYSTEM, "Welcome! Please enter your name:"));
+  deliver(utils::color::color(utils::color::SYSTEM, "환영합니다! 이름을 입력해주세요:"));
   do_read();
 }
 
@@ -126,7 +127,7 @@ void session::do_write() {
 void session::handle_initial_input(const std::string &input) {
   player_ = server_.add_player(input);
   if (!player_) {
-    deliver(utils::color::color(utils::color::ERROR_, "Name is already taken. Please choose another name:"));
+    deliver(utils::color::color(utils::color::ERROR_, "이미 사용중인 이름입니다. 다른 이름을 입력해주세요:"));
     return;
   }
   player_->set_session(shared_from_this());
@@ -139,16 +140,13 @@ void session::handle_initial_input(const std::string &input) {
 
   is_logged_in_ = true;
   deliver("\033[2J\033[H"); // Clear screen
-//   deliver("\033[1;32mHello, " + player_->get_name() +
-//                                "! Welcome to the MUD.\033[0m");
-deliver(utils::color::color(utils::color::SAY ,"Hello, " + player_->get_name() +
-                               "! Welcome to the MUD."));   
+deliver(utils::color::color(utils::color::SAY, "안녕하세요, " + player_->get_name() + "님! MUD에 오신 것을 환영합니다."));
 
-  std::string join_msg = utils::color::join(player_->get_name() + " has joined the game.");
-  utils::Logger::instance().log(player_->get_name() + " has joined the game.");
+  std::string join_msg = utils::color::join(player_->get_name() + "님이 게임에 참여했습니다.");
+  utils::Logger::instance().log(player_->get_name() + "님이 게임에 참여했습니다.");
   server_.broadcast(join_msg, shared_from_this());
 
-  process_command("look");
+  command_handler_.handle("LOOK", {});
 }
 
 void session::handle_message(const std::string &msg) {
@@ -159,8 +157,40 @@ void session::handle_message(const std::string &msg) {
   if (msg[0] == '/') {
     process_command(msg.substr(1));
   } else {
-    process_command("say " + msg);
+    if (isInChatMode_) {
+        command_handler_.handle("SAY", {msg});
+        return;
+    }
+
+    auto self(shared_from_this());
+    boost::asio::post(server_.get_thread_pool(), [self, msg]() {
+        ParsedCommand parsed = self->server_.get_nlp().parse(msg);
+        
+        boost::asio::post(self->socket_.get_executor(), [self, parsed, msg]() {
+            self->handle_parsed_command(parsed, msg);
+        });
+    });
   }
+}
+
+void session::handle_parsed_command(const ParsedCommand& parsed, const std::string& original_msg) {
+    if (parsed.command.empty()) {
+        if (!parsed.args.empty()) {
+            deliver(utils::color::info(parsed.args[0]));
+        } else {
+            utils::Logger::instance().log(player_->get_name() + "님의 입력을 명령으로 인식하지 못했습니다: " + original_msg);
+            deliver(utils::color::system("명령을 인식하지 못했습니다. 채팅 모드로 전환하려면 /chat, /ㅊ 명령을 사용하세요."));
+        }
+    } else {
+        utils::Logger::instance().log(player_->get_name() + "님의 입력을 명령으로 인식했습니다: " + original_msg);
+        std::string canonical_command = server_.get_command_manager().get_canonical_command(parsed.command);
+
+        if (!canonical_command.empty()) {
+            command_handler_.handle(canonical_command, parsed.args);
+        } else {
+            command_handler_.handle(parsed.command, parsed.args);
+        }
+    }
 }
 
 void session::process_command(const std::string &input) {
@@ -172,8 +202,7 @@ void session::process_command(const std::string &input) {
       server_.get_command_manager().get_canonical_command(alias);
 
   if (command.empty()) {
-    // deliver(utils::color::ERROR("Unknown command: " + alias));
-    deliver(utils::color::system("Unknown command: " + alias));
+    deliver(utils::color::system("알 수 없는 명령어입니다: " + alias));
     return;
   }
 
@@ -195,6 +224,15 @@ while (iss >> arg) {
 }
 
   command_handler_.handle(command, args);
+}
+
+void session::toggle_chat_mode() {
+    isInChatMode_ = !isInChatMode_;
+    if (isInChatMode_) {
+        deliver(utils::color::system("채팅 모드로 전환합니다. 모든 입력은 채팅으로 처리됩니다."));
+    } else {
+        deliver(utils::color::system("명령 모드로 전환합니다."));
+    }
 }
 
 } // namespace mud

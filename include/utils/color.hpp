@@ -21,6 +21,7 @@ const std::string LEFT    = "\x1b[90m";    // Bright Gray    (퇴장 - 조용하
 const std::string ERROR_  = "\x1b[1;91m";  // Bright Red     (에러 - 강한 경고)
 // const std::string EVENT   = "\x1b[1;35m";  // Bright Magenta (이벤트 - 특별함/이끌림)
 const std::string EVENT = "\x1b[1;33m";      // Bright Yellow  (이벤트 - 특별함/이끌림)
+const std::string INFO = "\x1b[1;33m";       // Bright Yellow  (정보 - 신뢰/안정)
 const std::string PORTAL  = "\x1b[1;35m";  // Bright Magenta (포탈 - 신비로움/탐험)
 
 
@@ -68,6 +69,10 @@ inline std::string move(const std::string &message) {
 
 inline std::string system(const std::string &message) {
   return tag("System", SYSTEM, message);
+}
+
+inline std::string info(const std::string &message) {
+  return tag("Info", INFO, message);
 }
 
 inline std::string error(const std::string &message) {

@@ -1,7 +1,7 @@
 {
   "id": "north_road",
-  "name": "North Road",
-  "description": "A dusty road leading north out of town.",
+  "name": "북쪽 길",
+  "description": "마을 북쪽으로 이어지는 먼지 낀 길입니다.",
   "size": {
     "width": 5,
     "height": 20
@@ -14,7 +14,7 @@
       "target_map": "town_square",
       "target_x": 5,
       "target_y": 0,
-      "description": "A path leads south back to the town."
+      "description": "남쪽으로 마을로 돌아가는 길이 보입니다."
     }
   ],
   "exits": {

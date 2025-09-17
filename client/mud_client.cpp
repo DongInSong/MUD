@@ -11,6 +11,7 @@
 // --- Console UI Handling ---
 std::mutex console_mutex;
 std::vector<std::string> message_log;
+std::string current_input_global; // 전역 변수로 변경
 std::atomic<bool> connected{false};
 const int MAX_LOG_SIZE = 20;
 
@@ -31,7 +32,7 @@ void clear_screen() {
   SetConsoleCursorPosition(hConsole, coordScreen);
 }
 
-void redraw_screen(const std::string &current_input) {
+void redraw_screen() {
   std::lock_guard<std::mutex> lock(console_mutex);
   clear_screen();
 
@@ -43,12 +44,13 @@ void redraw_screen(const std::string &current_input) {
   for (const auto &msg : message_log) {
     COORD pos = {0, (SHORT)log_start_line++};
     SetConsoleCursorPosition(hConsole, pos);
-    std::cout << msg;
+    // 각 메시지를 별도의 줄에 출력
+    std::cout << msg << std::endl;
   }
 
   COORD input_pos = {0, (SHORT)(csbi.dwSize.Y - 1)};
   SetConsoleCursorPosition(hConsole, input_pos);
-  std::cout << "> " << current_input;
+  std::cout << "> " << current_input_global;
 }
 
 void add_message(const std::string &msg) {
@@ -105,7 +107,7 @@ private:
           if (ec == boost::asio::error::eof ||
               ec == boost::asio::error::connection_reset) {
             add_message("\033[1;31mDisconnected from server. (/quit) \033[0m");
-            redraw_screen("");
+            redraw_screen();
             connected = false;
             return;
           }
@@ -117,7 +119,7 @@ private:
               line.pop_back();
             }
             add_message(line);
-            redraw_screen(""); // Redraw screen with empty input
+            redraw_screen(); // 현재 입력 내용 유지하며 다시 그리기
             do_read();
           } else {
             if (ec != boost::asio::error::eof) {
@@ -173,23 +175,25 @@ int main(int argc, char *argv[]) {
 
     c.start();
 
-    std::string current_input;
-    redraw_screen(current_input);
+    redraw_screen();
 
     while (true) {
       char ch = std::cin.get();
-      if (ch == '\n' || ch == '\r') {
-        if (current_input == "/quit") {
-          break;
+      {
+        std::lock_guard<std::mutex> lock(console_mutex);
+        if (ch == '\n' || ch == '\r') {
+          if (current_input_global == "/quit") {
+            break;
+          }
+          c.write(current_input_global);
+          current_input_global.clear();
+        } else if (ch == '\b' && !current_input_global.empty()) {
+          current_input_global.pop_back();
+        } else {
+          current_input_global += ch;
         }
-        c.write(current_input);
-        current_input.clear();
-      } else if (ch == '\b' && !current_input.empty()) {
-        current_input.pop_back();
-      } else {
-        current_input += ch;
       }
-      redraw_screen(current_input);
+      redraw_screen();
     }
 
     c.close();

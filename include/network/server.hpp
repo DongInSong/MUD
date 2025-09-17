@@ -2,9 +2,11 @@
 
 #include "commands/command_manager.hpp"
 #include "network/chat_participant.hpp"
+#include "nlp/natural_language_processor.hpp"
 #include "players/player.hpp"
 #include "world/world.hpp"
 #include <boost/asio.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <map>
 #include <memory>
 #include <set>
@@ -34,15 +36,19 @@ public:
 
   world::World &get_world();
   const CommandManager &get_command_manager() const;
+  NaturalLanguageProcessor &get_nlp();
+  boost::asio::thread_pool& get_thread_pool();
 
 private:
   void do_accept();
 
+  boost::asio::thread_pool thread_pool_;
   boost::asio::io_context &io_context_;
   tcp::acceptor acceptor_;
   std::set<chat_participant_ptr> sessions_;
   std::map<std::string, std::shared_ptr<Player>> players_;
   world::World world_;
   CommandManager command_manager_;
+  NaturalLanguageProcessor nlp_;
 };
 } // namespace mud

@@ -23,10 +23,11 @@ void enable_ansi_escape_codes() {
 }
 
 int main(int argc, char *argv[]) {
+  SetConsoleOutputCP(CP_UTF8);
   enable_ansi_escape_codes();
   try {
     if (argc != 2) {
-      std::cerr << "Usage: mud_server <port>\n";
+      std::cerr << "사용법: mud_server <port>\n";
       return 1;
     }
 
@@ -36,10 +37,10 @@ int main(int argc, char *argv[]) {
     boost::asio::io_context io_context;
     tcp::endpoint endpoint(tcp::v4(), std::atoi(argv[1]));
     mud::server s(io_context, endpoint, data_path.string());
-    std::cout << "\033[1;32mServer started " << endpoint.address().to_string() << ":" << endpoint.port() << "\033[0m" << std::endl;
+    std::cout << "\033[1;32m서버가 " << endpoint.address().to_string() << ":" << endpoint.port() << "에서 시작되었습니다.\033[0m" << std::endl;
     s.run();
   } catch (const std::exception &e) {
-    std::cerr << "Exception: " << e.what() << "\n";
+    std::cerr << "예외 발생: " << e.what() << "\n";
   }
   return 0;
 }

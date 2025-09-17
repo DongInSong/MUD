@@ -15,14 +15,20 @@ cmake_policy(SET CMP0167 NEW)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# MSVC 컴파일러에 UTF-8 소스 코드 처리 강제
+if(MSVC)
+  add_compile_options(/utf-8)
+endif()
+
 # 라이브러리 찾기
 find_package(Boost REQUIRED COMPONENTS asio)
 find_package(GTest CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(cpr CONFIG REQUIRED)
 
 # 소스 파일 목록
-file(GLOB_RECURSE ALL_SOURCES "src/**/*.cpp")
+file(GLOB_RECURSE ALL_SOURCES "src/*.cpp" "src/**/*.cpp")
 file(GLOB_RECURSE MAIN_SOURCE "src/main.cpp")
 list(REMOVE_ITEM ALL_SOURCES ${MAIN_SOURCE})
 
@@ -36,7 +42,7 @@ set(TEST_LIB ${ALL_SOURCES})
 # 서버 빌드
 add_executable(mud_server ${SOURCES})
 target_include_directories(mud_server PUBLIC include)
-target_link_libraries(mud_server PRIVATE Boost::asio yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json)
+target_link_libraries(mud_server PRIVATE Boost::asio yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json cpr::cpr)
 
 # 빌드 후 데이터 파일을 실행 파일 위치로 복사
 add_custom_command(TARGET mud_server POST_BUILD

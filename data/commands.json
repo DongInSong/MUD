@@ -2,55 +2,59 @@
   "commands": [
     {
       "name": "LOOK",
-      "aliases": ["look", "l", "보기", "봐"]
+      "aliases": ["l", "보기", "봐", "살펴보기"]
     },
     {
       "name": "NORTH",
-      "aliases": ["n", "north", "북"]
+      "aliases": ["n", "북", "북쪽"]
     },
     {
       "name": "SOUTH",
-      "aliases": ["s", "south", "남"]
+      "aliases": ["s", "남", "남쪽"]
     },
     {
       "name": "EAST",
-      "aliases": ["e", "east", "동"]
+      "aliases": ["e", "동", "동쪽"]
     },
     {
       "name": "WEST",
-      "aliases": ["w", "west", "서"]
+      "aliases": ["w", "서", "서쪽"]
     },
     {
       "name": "MOVE",
-      "aliases": ["m", "move", "이동"]
+      "aliases": ["m", "이동", "가기"]
     },
     {
       "name": "SAY",
-      "aliases": ["say", "말"]
+      "aliases": ["말하기", "say", "ㄴ"]
     },
     {
       "name": "QUIT",
-      "aliases": ["quit", "exit", "종료", "나가기"]
+      "aliases": ["종료", "나가기"]
     },
     {
       "name": "CLEAR",
-      "aliases": ["clear", "cls", "지우기"]
+      "aliases": ["cls", "지우기"]
     },
     {
       "name": "SHOUT",
-      "aliases": ["shout", "외치기"]
+      "aliases": ["외치기", "ㅂ", "외"]
     },
     {
       "name": "WHISPER",
-      "aliases": ["whisper", "whis", "귓", "귓속말"]
+      "aliases": ["whis", "귓", "귓속말"]
     },
     {
       "name": "HELP",
-      "aliases": ["help", "도움"]
+      "aliases": ["도움말"]
     },
     {
       "name": "INTERACT",
-      "aliases": ["interact", "inter", "상호작용", "상호"]
+      "aliases": ["상호작용"]
+    },
+    {
+      "name": "CHAT",
+      "aliases": ["채팅", "ㅊ"]
     }
   ]
 }

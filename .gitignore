@@ -9,3 +9,7 @@ build/
 .idea/
 
 *.log
+
+.package-lock.json
+.package.json
+node_modules/

@@ -4,7 +4,8 @@ mkdir build
 echo "Creating build directory..."
 cd build
 echo "Configuring project with CMake..."
-cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+@REM cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake ..
 echo "Building project..."
 cmake --build . 
 cd ..

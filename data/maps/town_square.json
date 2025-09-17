@@ -1,7 +1,7 @@
 {
   "id": "town_square",
-  "name": "Town Square",
-  "description": "You are in the bustling town square.",
+  "name": "마을 광장",
+  "description": "활기 넘치는 마을 광장에 서 있습니다.",
   "size": {
     "width": 10,
     "height": 10
@@ -9,16 +9,16 @@
   "objects": [
     {
       "type": "npc",
-      "name": "Old Man",
-      "description": "An old man sits on a bench, feeding pigeons.",
+      "name": "노인",
+      "description": "한 노인이 벤치에 앉아 비둘기에게 모이를 주고 있습니다.",
       "is_interactable": true,
       "x": 3,
       "y": 5
     },
     {
       "type": "item",
-      "name": "Fountain",
-      "description": "A large, ornate fountain bubbles in the center of the square.",
+      "name": "분수",
+      "description": "크고 화려한 분수가 광장 중앙에서 물을 뿜어내고 있습니다.",
       "is_interactable": false,
       "x": 5,
       "y": 5
@@ -31,7 +31,7 @@
       "target_map": "north_road",
       "target_x": 4,
       "target_y": 19,
-      "description": "A dusty path leads north out of the town."
+      "description": "먼지 낀 길이 북쪽으로 나 있습니다."
     }
   ],
   "exits": {

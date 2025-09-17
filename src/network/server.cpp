@@ -8,9 +8,10 @@
 namespace mud {
 server::server(boost::asio::io_context &io_context, const tcp::endpoint &endpoint,
                const std::string &data_path)
-    : io_context_(io_context), acceptor_(io_context, endpoint),
+    : thread_pool_(4), io_context_(io_context), acceptor_(io_context, endpoint),
       world_(data_path + "/maps"),
-      command_manager_(data_path + "/commands.json") {
+      command_manager_(data_path + "/commands.json"),
+      nlp_("http://localhost:3000/api/generate") {
   do_accept();
 }
 
@@ -82,6 +83,10 @@ world::World &server::get_world() { return world_; }
 const CommandManager &server::get_command_manager() const {
   return command_manager_;
 }
+
+NaturalLanguageProcessor &server::get_nlp() { return nlp_; }
+
+boost::asio::thread_pool& server::get_thread_pool() { return thread_pool_; }
 
 void server::do_accept() {
   acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
