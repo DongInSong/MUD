@@ -143,7 +143,7 @@ void session::handle_initial_input(const std::string &input) {
   deliver("\033[2J\033[H"); // Clear screen
 
   std::string title = "MUD에 오신 것을 환영합니다!";
-  std::string description = "안녕하세요, " + player_->get_name() + "님!\n이곳은 상상과 모험이 가득한 세계입니다. '/도움말'을 입력하여 가능한 명령어들을 확인해보세요.";
+  std::string description = "안녕하세요, " + player_->get_name() + "님!\n이곳은 상상과 모험이 가득한 세계입니다. '/d말'을 입력하여 가능한 명령어들을 확인해보세요.";
   deliver(utils::text_format::create_boxed_message(title, description, {}));
 
   std::string join_msg = utils::color::join(player_->get_name() + "님이 게임에 참여했습니다.");
@@ -155,6 +155,21 @@ void session::handle_initial_input(const std::string &input) {
 
 void session::handle_message(const std::string &msg) {
   if (msg.empty()) {
+    return;
+  }
+
+  if (mode_ == PlayerMode::MAP) {
+    if (msg == "__UP__") {
+        command_handler_.handle("NORTH", {});
+    } else if (msg == "__DOWN__") {
+        command_handler_.handle("SOUTH", {});
+    } else if (msg == "__LEFT__") {
+        command_handler_.handle("WEST", {});
+    } else if (msg == "__RIGHT__") {
+        command_handler_.handle("EAST", {});
+    } else if (msg[0] == '/') {
+        process_command(msg.substr(1));
+    }
     return;
   }
 
@@ -242,6 +257,14 @@ void session::toggle_chat_mode() {
     } else {
         deliver(utils::color::system("명령 모드로 전환합니다."));
     }
+}
+
+void session::set_mode(PlayerMode mode) {
+    mode_ = mode;
+}
+
+PlayerMode session::get_mode() const {
+    return mode_;
 }
 
 } // namespace mud

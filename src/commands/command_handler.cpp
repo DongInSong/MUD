@@ -52,6 +52,10 @@ void CommandHandler::setup_commands() {
   commands_["MAP"] =
       std::bind(&CommandHandler::show_map, this, std::placeholders::_1);
   commands_["CHAT"] = [this](const auto& args) { session_.toggle_chat_mode(); };
+  commands_["MAP_VIEW"] =
+      std::bind(&CommandHandler::map_view, this, std::placeholders::_1);
+  commands_["EXIT_MAP"] =
+      std::bind(&CommandHandler::exit_map, this, std::placeholders::_1);
 }
 
 void CommandHandler::quit(const std::vector<std::string> &args) {
@@ -196,8 +200,14 @@ void CommandHandler::move(int dx, int dy, int amount) {
   }
 
   if (moved) {
-    session_.deliver(utils::color::color(utils::color::MOVE, "[ 이동 ] >>") + " 현재 위치: (" + std::to_string(player->get_x()) + ", " + std::to_string(player->get_y()) + ")");
-    look_at_tile(&session_);
+    if (session_.get_mode() == PlayerMode::MAP) {
+        session_.deliver("\033[2J\033[H"); // Clear screen
+        show_map({});
+        look_at_tile(&session_);
+    } else {
+        session_.deliver(utils::color::color(utils::color::MOVE, "[ 이동 ] >>") + " 현재 위치: (" + std::to_string(player->get_x()) + ", " + std::to_string(player->get_y()) + ")");
+        look_at_tile(&session_);
+    }
   }
 }
 
@@ -477,6 +487,31 @@ void CommandHandler::show_map(const std::vector<std::string> &args) {
     } else {
         session_.deliver(utils::color::info("이 지역의 지도를 가지고 있지 않습니다."));
     }
+}
+
+void CommandHandler::map_view(const std::vector<std::string> &args) {
+    auto player = session_.get_player();
+    if (!player || !player->get_room()) return;
+
+    if (session_.get_mode() == PlayerMode::MAP) {
+        session_.deliver(utils::color::info("이미 지도 모드입니다. 방향키로 이동하거나 /exit_map 으로 나가세요."));
+        return;
+    }
+    if (player->has_item("map_" + player->get_room()->get_id()) == false) {
+        session_.deliver(utils::color::info("이 지역의 지도를 가지고 있지 않습니다."));
+        return;
+    }
+    session_.set_mode(PlayerMode::MAP);
+    session_.deliver("__ENTER_MAP_MODE__");
+    session_.deliver("\033[2J\033[H"); // Clear screen
+    show_map({});
+    session_.deliver(utils::color::system("지도 모드로 전환합니다. 방향키로 이동하세요. (나가려면 /exit_map)"));
+}
+
+void CommandHandler::exit_map(const std::vector<std::string> &args) {
+    session_.set_mode(PlayerMode::COMMAND);
+    session_.deliver("__EXIT_MAP_MODE__");
+    session_.deliver(utils::color::system("명령 모드로 돌아왔습니다."));
 }
 
 } // namespace mud

@@ -24,6 +24,8 @@
         { "name": "LOAD", "aliases": ["불러오기", "load"] },
         { "name": "QUIT", "aliases": ["종료", "quit"] },
         { "name": "CLEAR", "aliases": ["클리어", "clear"] },
-        { "name": "MAP", "aliases": ["지도", "map"] }
+        { "name": "MAP", "aliases": ["지도", "map"] },
+        { "name": "MAP_VIEW", "aliases": ["맵뷰", "mapview", "mv"] },
+        { "name": "EXIT_MAP", "aliases": ["맵나가기", "exitmap", "em"] }
     ]
 }

@@ -16,6 +16,8 @@ namespace mud {
 class server;
 class Player;
 
+enum class PlayerMode { COMMAND, MAP };
+
 using boost::asio::ip::tcp;
 
 class session : public chat_participant,
@@ -31,6 +33,8 @@ public:
   server &get_server();
   bool is_logged_in() const;
   void toggle_chat_mode();
+  void set_mode(PlayerMode mode);
+  PlayerMode get_mode() const;
 
 private:
   void do_read();
@@ -50,5 +54,6 @@ private:
   std::atomic<bool> closing_{false};
   std::string remote_endpoint_str_;
   CommandHandler command_handler_;
+  PlayerMode mode_ = PlayerMode::COMMAND;
 };
 } // namespace mud

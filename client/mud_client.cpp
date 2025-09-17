@@ -1,6 +1,6 @@
 #include <boost/asio.hpp>
 #include <iostream>
-// #include <ncurses.h>
+#include <conio.h>
 #include <deque>
 #include <mutex>
 #include <string>
@@ -11,8 +11,9 @@
 // --- Console UI Handling ---
 std::mutex console_mutex;
 std::vector<std::string> message_log;
-std::string current_input_global; // 전역 변수로 변경
+std::string current_input_global;
 std::atomic<bool> connected{false};
+std::atomic<bool> map_mode{false};
 const int MAX_LOG_SIZE = 20;
 
 void clear_screen() {
@@ -118,8 +119,14 @@ private:
             if (!line.empty() && line.back() == '\r') {
               line.pop_back();
             }
-            add_message(line);
-            redraw_screen(); // 현재 입력 내용 유지하며 다시 그리기
+            if (line == "__ENTER_MAP_MODE__") {
+                map_mode = true;
+            } else if (line == "__EXIT_MAP_MODE__") {
+                map_mode = false;
+            } else {
+                add_message(line);
+            }
+            redraw_screen();
             do_read();
           } else {
             if (ec != boost::asio::error::eof) {
@@ -178,22 +185,35 @@ int main(int argc, char *argv[]) {
     redraw_screen();
 
     while (true) {
-      char ch = std::cin.get();
-      {
-        std::lock_guard<std::mutex> lock(console_mutex);
-        if (ch == '\n' || ch == '\r') {
-          if (current_input_global == "/quit") {
-            break;
-          }
-          c.write(current_input_global);
-          current_input_global.clear();
-        } else if (ch == '\b' && !current_input_global.empty()) {
-          current_input_global.pop_back();
+        if (map_mode) {
+            int ch = _getch();
+            if (ch == 0 || ch == 224) { // Arrow key prefix
+                int arrow = _getch();
+                switch (arrow) {
+                    case 72: c.write("__UP__"); break;
+                    case 80: c.write("__DOWN__"); break;
+                    case 75: c.write("__LEFT__"); break;
+                    case 77: c.write("__RIGHT__"); break;
+                }
+            } else if (ch == '/') { // Allow slash commands in map mode
+                std::string command_input;
+                std::cout << "/";
+                std::getline(std::cin, command_input);
+                c.write("/" + command_input);
+                redraw_screen();
+            }
         } else {
-          current_input_global += ch;
+            std::string line;
+            std::getline(std::cin, line);
+            if (line == "/quit") {
+                break;
+            }
+            c.write(line);
+            {
+                std::lock_guard<std::mutex> lock(console_mutex);
+                current_input_global.clear();
+            }
         }
-      }
-      redraw_screen();
     }
 
     c.close();
