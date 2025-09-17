@@ -1,0 +1,10 @@
+{
+    "items": [
+        {
+            "id": "map_town_square",
+            "name": "마을 광장 지도",
+            "description": "마을 광장의 구조가 그려진 낡은 양피지 지도입니다.",
+            "type": "map"
+        }
+    ]
+}

@@ -1,5 +1,6 @@
 #include "world/room.hpp"
 #include <utility>
+#include <algorithm>
 
 namespace mud {
 namespace world {
@@ -37,7 +38,7 @@ void Room::link(const std::string &direction, std::shared_ptr<Room> room) {
 std::shared_ptr<Room> Room::get_exit(const std::string &direction) const {
   auto it = exits_.find(direction);
   if (it != exits_.end()) {
-    return it->second;
+    return it->second.lock();
   }
   return nullptr;
 }
@@ -48,10 +49,21 @@ void Room::add_object(int x, int y, const Object &object) {
   }
 }
 
+void Room::remove_object(int x, int y, const std::string& object_name) {
+    if (x >= 0 && x < width_ && y >= 0 && y < height_) {
+        auto& objects = tiles_[y][x].objects;
+        objects.erase(std::remove_if(objects.begin(), objects.end(),
+                                     [&object_name](const Object& obj) {
+                                         return obj.name == object_name;
+                                     }),
+                      objects.end());
+    }
+}
+
 void Room::add_portal(const Portal &portal) {
   if (portal.x >= 0 && portal.x < width_ && portal.y >= 0 &&
       portal.y < height_) {
-    tiles_[portal.y][portal.x].portal = std::make_shared<Portal>(portal);
+    tiles_[portal.y][portal.x].portal = portal;
   }
 }
 

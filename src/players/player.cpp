@@ -1,6 +1,7 @@
 #include "players/player.hpp"
 #include "network/session.hpp"
 #include <utility>
+#include <algorithm>
 
 namespace mud {
 
@@ -31,5 +32,21 @@ int Player::get_x() const { return x_; }
 int Player::get_y() const { return y_; }
 
 int Player::get_sight_radius() const { return sight_radius_; }
+
+void Player::add_item_to_inventory(const Item& item) {
+    inventory_.push_back(item);
+}
+
+bool Player::has_item(const std::string& item_id) const {
+    auto it = std::find_if(inventory_.begin(), inventory_.end(),
+                           [&item_id](const Item& item) {
+                               return item.id == item_id;
+                           });
+    return it != inventory_.end();
+}
+
+const std::vector<Item>& Player::get_inventory() const {
+    return inventory_;
+}
 
 } // namespace mud

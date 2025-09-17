@@ -55,6 +55,19 @@
     {
       "name": "CHAT",
       "aliases": ["채팅", "ㅊ"]
+    },
+    {
+      "name": "GET",
+      "aliases": ["줍기", "주워"]
+    },
+    {
+      "name": "STEAL",
+      "aliases": ["훔치기", "훔쳐"]
+    },
+    {
+      "name": "MAP",
+      "aliases": ["지도", "map", "맵"]
     }
+
   ]
 }

@@ -28,6 +28,7 @@ private:
   void interact(const std::vector<std::string> &args);
   void talk(const std::vector<std::string> &args);
   void get(const std::vector<std::string> &args);
+  void show_map(const std::vector<std::string> &args);
 
   session &session_;
   std::map<std::string,

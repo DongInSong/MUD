@@ -5,6 +5,7 @@
 #include "world/room.hpp"
 #include "utils/color.hpp"
 #include "utils/logger.hpp"
+#include "utils/text_format.hpp"
 #include <iostream>
 #include <istream>
 #include <sstream>
@@ -140,7 +141,10 @@ void session::handle_initial_input(const std::string &input) {
 
   is_logged_in_ = true;
   deliver("\033[2J\033[H"); // Clear screen
-deliver(utils::color::color(utils::color::SAY, "안녕하세요, " + player_->get_name() + "님! MUD에 오신 것을 환영합니다."));
+
+  std::string title = "MUD에 오신 것을 환영합니다!";
+  std::string description = "안녕하세요, " + player_->get_name() + "님!\n이곳은 상상과 모험이 가득한 세계입니다. '/도움말'을 입력하여 가능한 명령어들을 확인해보세요.";
+  deliver(utils::text_format::create_boxed_message(title, description, {}));
 
   std::string join_msg = utils::color::join(player_->get_name() + "님이 게임에 참여했습니다.");
   utils::Logger::instance().log(player_->get_name() + "님이 게임에 참여했습니다.");
@@ -152,6 +156,11 @@ deliver(utils::color::color(utils::color::SAY, "안녕하세요, " + player_->ge
 void session::handle_message(const std::string &msg) {
   if (msg.empty()) {
     return;
+  }
+
+  //if command is not say, shout, whisper, clear or player is not chat mode -> self deliver
+  if (msg[0] != '/' && !isInChatMode_) {
+      deliver(player_->get_name() + ": " + msg);
   }
 
   if (msg[0] == '/') {
@@ -179,7 +188,7 @@ void session::handle_parsed_command(const ParsedCommand& parsed, const std::stri
             deliver(utils::color::info(parsed.args[0]));
         } else {
             utils::Logger::instance().log(player_->get_name() + "님의 입력을 명령으로 인식하지 못했습니다: " + original_msg);
-            deliver(utils::color::system("명령을 인식하지 못했습니다. 채팅 모드로 전환하려면 /chat, /ㅊ 명령을 사용하세요."));
+            deliver(utils::color::error("명령을 인식하지 못했습니다. 채팅 모드로 전환하려면 /chat, /ㅊ 명령을 사용하세요."));
         }
     } else {
         utils::Logger::instance().log(player_->get_name() + "님의 입력을 명령으로 인식했습니다: " + original_msg);
@@ -202,7 +211,7 @@ void session::process_command(const std::string &input) {
       server_.get_command_manager().get_canonical_command(alias);
 
   if (command.empty()) {
-    deliver(utils::color::system("알 수 없는 명령어입니다: " + alias));
+    deliver(utils::color::error("알 수 없는 명령어입니다: " + alias));
     return;
   }
 

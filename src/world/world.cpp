@@ -10,7 +10,8 @@ namespace world {
 
 using json = nlohmann::json;
 
-World::World(const std::string &maps_directory) {
+World::World(const std::string &maps_directory, const std::string &items_file) {
+  item_manager_.load_items(items_file);
   load_world_from_files(maps_directory);
 }
 
@@ -24,6 +25,10 @@ std::shared_ptr<Room> World::get_room(const std::string &id) const {
     return it->second;
   }
   return nullptr;
+}
+
+const ItemManager& World::get_item_manager() const {
+    return item_manager_;
 }
 
 void World::load_world_from_files(const std::string &maps_directory) {
@@ -53,7 +58,8 @@ Object obj{
     obj_data["type"].get<std::string>(),
     obj_data["name"].get<std::string>(),
     obj_data["is_interactable"].get<bool>(),
-    obj_data["description"].get<std::string>()
+    obj_data["description"].get<std::string>(),
+    obj_data.contains("item_id") ? obj_data["item_id"].get<std::string>() : ""
 };
   room->add_object(obj_data["x"], obj_data["y"], obj);
 }

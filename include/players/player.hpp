@@ -1,8 +1,10 @@
 #pragma once
 
+#include "world/item.hpp"
 #include "world/room.hpp"
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace mud {
 class session; // Forward declaration
@@ -21,7 +23,13 @@ public:
   int get_y() const;
   int get_sight_radius() const;
 
+  // Inventory methods
+  void add_item_to_inventory(const Item& item);
+  bool has_item(const std::string& item_id) const;
+  const std::vector<Item>& get_inventory() const;
+
 private:
+  std::vector<Item> inventory_;
   int sight_radius_ = 2;
   std::string name_;
   std::weak_ptr<session> session_;

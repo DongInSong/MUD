@@ -9,7 +9,7 @@ namespace mud {
 server::server(boost::asio::io_context &io_context, const tcp::endpoint &endpoint,
                const std::string &data_path)
     : thread_pool_(4), io_context_(io_context), acceptor_(io_context, endpoint),
-      world_(data_path + "/maps"),
+      world_(data_path + "/maps", data_path + "/items.json"),
       command_manager_(data_path + "/commands.json"),
       nlp_("http://localhost:3000/api/generate") {
   do_accept();

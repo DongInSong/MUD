@@ -4,6 +4,7 @@
 #include "players/player.hpp"
 #include "utils/color.hpp"
 #include "utils/logger.hpp"
+#include "utils/text_format.hpp"
 #include "world/room.hpp"
 
 namespace mud {
@@ -48,6 +49,8 @@ void CommandHandler::setup_commands() {
       std::bind(&CommandHandler::talk, this, std::placeholders::_1);
   commands_["GET"] = 
       std::bind(&CommandHandler::get, this, std::placeholders::_1);
+  commands_["MAP"] =
+      std::bind(&CommandHandler::show_map, this, std::placeholders::_1);
   commands_["CHAT"] = [this](const auto& args) { session_.toggle_chat_mode(); };
 }
 
@@ -71,7 +74,7 @@ std::string get_relative_direction(int player_x, int player_y, int target_x, int
 void CommandHandler::look(const std::vector<std::string> &args) {
   auto player = session_.get_player();
   if (!player || !player->get_room()) {
-    session_.deliver(utils::color::system("You are lost in the void."));
+    session_.deliver(utils::color::error("You are lost in the void."));
     return;
   }
   auto room = player->get_room();
@@ -79,49 +82,63 @@ void CommandHandler::look(const std::vector<std::string> &args) {
   int player_y = player->get_y();
   int sight_radius = player->get_sight_radius();
 
-  session_.deliver(
-      "========================================");
-  session_.deliver(
-      room->get_name() + " (" + std::to_string(player_x) + ", " +
-      std::to_string(player_y) + ")");
-  session_.deliver(room->get_description());
-  look_at_tile(&session_); // 현재 타일 정보 출력
+  std::string title = room->get_name() + " (" + std::to_string(player_x) + ", " + std::to_string(player_y) + ")";
+  std::string description = room->get_description();
+  
+  utils::text_format::ContentSection objects_section;
+  objects_section.title = "주변 사물";
+  
+  utils::text_format::ContentSection portals_section;
+  portals_section.title = "포탈";
 
-  // 주변 시야 정보 출력
-  bool found_something = false;
+  // 현재 타일 정보
+  const auto& current_tile = room->get_tile(player_x, player_y);
+  for (const auto& obj : current_tile.objects) {
+      objects_section.items.push_back(obj.description + " (발밑)");
+  }
+  if (current_tile.portal) {
+      portals_section.items.push_back(current_tile.portal->description + " (발밑)");
+  }
+
+  // 주변 시야 정보
   for (int y = player_y - sight_radius; y <= player_y + sight_radius; ++y) {
       for (int x = player_x - sight_radius; x <= player_x + sight_radius; ++x) {
-          if (x == player_x && y == player_y) continue; // Skip player's own tile
+          if (x == player_x && y == player_y) continue;
           if (x >= 0 && x < room->get_width() && y >= 0 && y < room->get_height()) {
               const auto& tile = room->get_tile(x, y);
               if (!tile.objects.empty() || tile.portal) {
                   std::string direction = get_relative_direction(player_x, player_y, x, y);
                   std::string coord_str = " (" + std::to_string(x) + "," + std::to_string(y) + ")";
                   for (const auto& obj : tile.objects) {
-                      session_.deliver(utils::color::event(direction + coord_str + "에 " + obj.description));
-                      found_something = true;
+                      objects_section.items.push_back(direction + coord_str + "에 " + obj.description);
                   }
                   if (tile.portal) {
-                      session_.deliver(utils::color::portal(direction + coord_str + "에 " + tile.portal->description));
-                      found_something = true;
+                      portals_section.items.push_back(direction + coord_str + "에 " + tile.portal->description);
                   }
               }
           }
       }
   }
 
-  if (!found_something) {
-      session_.deliver(utils::color::info("주변에 특별한 것은 보이지 않습니다."));
+  if (objects_section.items.empty() && portals_section.items.empty()) {
+      description += "\n주변에 특별한 것은 보이지 않습니다.";
   }
 
-  session_.deliver(
-      "========================================");
+  std::vector<utils::text_format::ContentSection> sections;
+  if (!objects_section.items.empty()) {
+      sections.push_back(objects_section);
+  }
+  if (!portals_section.items.empty()) {
+      sections.push_back(portals_section);
+  }
+
+  session_.deliver(utils::text_format::create_boxed_message(title, description, sections));
 }
 
 void CommandHandler::move(int dx, int dy, int amount) {
   auto player = session_.get_player();
   if (!player || !player->get_room()) {
-    session_.deliver(utils::color::system("이동할 수 없습니다."));
+    session_.deliver(utils::color::error("이동할 수 없습니다."));
     return;
   }
 
@@ -139,16 +156,13 @@ void CommandHandler::move(int dx, int dy, int amount) {
       player->set_location(room, new_x, new_y);
       moved = true;
     } else {
-      session_.deliver(utils::color::system("그쪽으로는 더 이상 갈 수 없습니다."));
+      session_.deliver(utils::color::error("그쪽으로는 더 이상 갈 수 없습니다."));
       break; // Stop moving if hit a wall
     }
   }
 
   if (moved) {
-    session_.deliver(utils::color::tag(
-        "이동", utils::color::MOVE,
-        "이동했습니다. 현재 위치: (" + std::to_string(player->get_x()) + ", " +
-            std::to_string(player->get_y()) + ")"));
+    session_.deliver(utils::color::color(utils::color::MOVE, "[ 이동 ] >>") + " 현재 위치: (" + std::to_string(player->get_x()) + ", " + std::to_string(player->get_y()) + ")");
     look_at_tile(&session_);
   }
 }
@@ -179,13 +193,10 @@ void CommandHandler::move_to(const std::vector<std::string> &args) {
 
         if (target_x >= 0 && target_x < room->get_width() && target_y >= 0 && target_y < room->get_height()) {
             player->set_location(room, target_x, target_y);
-            session_.deliver(utils::color::tag(
-                "이동", utils::color::MOVE,
-                "이동했습니다. 현재 위치: (" + std::to_string(player->get_x()) + ", " +
-                    std::to_string(player->get_y()) + ")"));
+            session_.deliver(utils::color::color(utils::color::MOVE, "[ 이동 ] >>") + " 현재 위치: (" + std::to_string(player->get_x()) + ", " + std::to_string(player->get_y()) + ")");
             look_at_tile(&session_);
         } else {
-            session_.deliver(utils::color::system("그곳으로는 이동할 수 없습니다."));
+            session_.deliver(utils::color::error("그곳으로는 이동할 수 없습니다."));
         }
     } else { // 방향 이동
         std::string direction = args[0];
@@ -203,7 +214,7 @@ void CommandHandler::move_to(const std::vector<std::string> &args) {
         else if (direction == "EAST") move(1, 0, amount);
         else if (direction == "WEST") move(-1, 0, amount);
         else {
-            session_.deliver(utils::color::system("알 수 없는 방향입니다: " + direction));
+            session_.deliver(utils::color::error("알 수 없는 방향입니다: " + direction));
         }
     }
 }
@@ -212,7 +223,7 @@ void CommandHandler::say(const std::vector<std::string> &args) {
   auto player = session_.get_player();
   if (!player || !player->get_room()) {
     session_.deliver(
-        utils::color::system("You are not in a room to speak."));
+        utils::color::error("You are not in a room to speak."));
     return;
   }
   if (args.empty()) {
@@ -271,7 +282,7 @@ void CommandHandler::whisper(const std::vector<std::string> &args) {
   auto target_player = session_.get_server().get_player_by_name(target_name);
 
   if (!target_player) {
-    session_.deliver(utils::color::system("대상 플레이어를 찾을 수 없습니다: " + target_name));
+    session_.deliver(utils::color::error("대상 플레이어를 찾을 수 없습니다: " + target_name));
     return;
   }
 
@@ -292,7 +303,7 @@ void CommandHandler::clear(const std::vector<std::string> &args) {
 void CommandHandler::interact(const std::vector<std::string> &args) {
   auto player = session_.get_player();
   if (!player || !player->get_room()) {
-    session_.deliver(utils::color::system("상호작용할 수 있는 장소에 없습니다."));
+    session_.deliver(utils::color::error("상호작용할 수 있는 장소에 없습니다."));
     return;
   }
   
@@ -323,7 +334,7 @@ void CommandHandler::interact(const std::vector<std::string> &args) {
             session_.deliver("\n" + utils::color::system(target_room->get_name() + "에 도착했습니다."));
             handle("LOOK", {});
         } else {
-            session_.deliver(utils::color::system("포탈이 작동하지 않는 것 같습니다."));
+            session_.deliver(utils::color::error("포탈이 작동하지 않는 것 같습니다."));
         }
         interacted = true;
     }
@@ -332,7 +343,7 @@ void CommandHandler::interact(const std::vector<std::string> &args) {
     // Find the object in the room and interact with it
     // This part needs a way to find objects by name in the room.
     // For now, we'll just deliver a message.
-    session_.deliver(utils::color::system(target_name + "와(과) 상호작용을 시도합니다. (미구현)"));
+    session_.deliver(utils::color::info(target_name + "와(과) 상호작용을 시도합니다. (미구현)"));
   }
 }
 
@@ -371,9 +382,46 @@ void CommandHandler::get(const std::vector<std::string> &args) {
         session_.deliver(utils::color::info("무엇을 주우시겠습니까?"));
         return;
     }
-    // For now, just confirm the action.
-    // Later, this will involve finding the item and adding it to inventory.
-    session_.deliver(utils::color::event(args[0] + "을(를) 줍습니다."));
+
+    auto player = session_.get_player();
+    if (!player || !player->get_room()) return;
+
+    auto room = player->get_room();
+    const auto& tile = room->get_tile(player->get_x(), player->get_y());
+    std::string target_name = args[0];
+
+    auto it = std::find_if(tile.objects.begin(), tile.objects.end(),
+                           [&target_name](const world::Object& obj) {
+                               return obj.name == target_name && obj.type == "item";
+                           });
+
+    if (it != tile.objects.end()) {
+        const auto& obj = *it;
+        auto item = session_.get_server().get_world().get_item_manager().get_item(obj.item_id);
+        if (item) {
+            player->add_item_to_inventory(*item);
+            room->remove_object(player->get_x(), player->get_y(), obj.name);
+            session_.deliver(utils::color::event(item->name + "을(를) 주웠습니다."));
+        } else {
+            session_.deliver(utils::color::error("아이템 정보를 찾을 수 없습니다."));
+        }
+    } else {
+        session_.deliver(utils::color::info("여기에는 그런 아이템이 없습니다."));
+    }
+}
+
+void CommandHandler::show_map(const std::vector<std::string> &args) {
+    auto player = session_.get_player();
+    if (!player || !player->get_room()) return;
+
+    auto room = player->get_room();
+    std::string map_item_id = "map_" + room->get_id();
+
+    if (player->has_item(map_item_id)) {
+        session_.deliver(utils::text_format::create_map_view(*room, player->get_x(), player->get_y()));
+    } else {
+        session_.deliver(utils::color::info("이 지역의 지도를 가지고 있지 않습니다."));
+    }
 }
 
 } // namespace mud

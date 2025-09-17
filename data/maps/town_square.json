@@ -22,6 +22,15 @@
       "is_interactable": false,
       "x": 5,
       "y": 5
+    },
+    {
+      "type": "item",
+      "name": "지도",
+      "description": "낡은 지도가 바닥에 떨어져 있습니다.",
+      "is_interactable": true,
+      "item_id": "map_town_square",
+      "x": 8,
+      "y": 8
     }
   ],
   "portals": [
